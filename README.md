@@ -9,6 +9,9 @@
 
 ## **DOCS**:
 
+### How to install:
+Put the .pyc file into the same folder as your project and simply import it.
+
 ### Print Hello, world
 ```
 import screen
