@@ -18,7 +18,7 @@ pygame.init()
 pygame.font.init()
 
 CAPTION = "test"
-MAX = 250
+DT = 0
 
 flags = HWSURFACE|DOUBLEBUF|RESIZABLE
 bpp = 8
@@ -36,6 +36,11 @@ SCREEN_TEXT = ''
 INPUT_TEXT = ''
 scroll_height = 0
 scroll_speed = 30
+SCREEN_MAX_LINES = 0
+SCREEN_TOTAL_LINES = 0
+FONT_HEIGHT = 5
+SCROLL_DRAG_DISTANCE = 10
+FPS = 120
 
 POINTER = 0
 
@@ -67,28 +72,42 @@ SCREEN=_sprite_(pygame.Surface([50, 50]))
 INPUT =_sprite_(pygame.Surface([50, 50]))
 
 def blit_text(surface, text, pos, font, pointer = None, color=pygame.Color('black')):
+    global FONT_HEIGHT
     unix = int(time.time())
     pointed = False
     text = [word.split('\n') for word in text.splitlines()]  # 2D array where a row is a list of lines.
+    #print(text)
     space = font.size(' ')[0]  # The width of a space.
     max_width, max_height = surface.get_size()
     x, y = pos
-    for k, line in enumerate(text):
-        for j, word in enumerate(line):
-            word = word + " "
-            for i, letter in enumerate(word):
-                #print(i, pointer)
-                if i+j+k == pointer:
-                    #if (unix % 2) == 0:
-                    letter = "_"
-                    pointed = True
-                letter_surface = font.render(letter, 0, color)
-                letter_width, letter_height = letter_surface.get_size()
-                surface.blit(letter_surface, (x, y))
-                x += letter_width
-        x = pos[0]  # Reset the x.
-        y += letter_height  # Start on new row.
-
+    if pointer != None:
+        for k, line in enumerate(text):
+            for j, word in enumerate(line):
+                word = word + " "
+                for i, letter in enumerate(word):
+                    #print(i, pointer)
+                    if i+j+k == pointer:
+                        #if (unix % 2) == 0:
+                        letter = "_"
+                        pointed = True
+                    letter_surface = font.render(letter, 0, color)
+                    letter_width, letter_height = letter_surface.get_size()
+                    surface.blit(letter_surface, (x, y))
+                    x += letter_width
+            x = pos[0]  # Reset the x.
+            y += letter_height  # Start on new row.
+            FONT_HEIGHT = letter_height
+    else:
+        for k, line in enumerate(text):
+            for j, word in enumerate(line):
+                line = line[0]
+                #print(line)
+                line_surface = font.render(line, 0, color)
+                line_width, line_height = line_surface.get_size()
+                surface.blit(line_surface, (x, y))
+            x = pos[0]  # Reset the x.
+            y += line_height  # Start on new row.
+            FONT_HEIGHT = line_height
 def render_texts(text):
     blit_text(SCREEN.surf, str(SCREEN_TEXT), (10, 10 + scroll_height), base_font, None, colors.text_color)
     blit_text(INPUT.surf, str(text) + str(INPUT_TEXT), (10, 10), base_font, POINTER+len(text), colors.text_color)
@@ -167,7 +186,20 @@ def prepare():
     INPUT.move((0, screen_h-50), (screen_w, 50))
     INPUT.surf.fill(colors.input_background)
 
-def update(text = "", fps=120, ACTIVE = False):
+def scroll_by_say():
+    global SCREEN_TOTAL_LINES, scroll_height
+    a = SCREEN_TEXT.count("\n")
+    if a > SCREEN_TOTAL_LINES:
+        if (SCREEN_TOTAL_LINES*FONT_HEIGHT) + scroll_height < SCROLL_DRAG_DISTANCE * FONT_HEIGHT and (SCREEN_TOTAL_LINES*FONT_HEIGHT) + scroll_height > FONT_HEIGHT:
+            scroll_height += (SCREEN_TOTAL_LINES - a) * FONT_HEIGHT
+    elif a < SCREEN_TOTAL_LINES:
+        if (SCREEN_TOTAL_LINES*FONT_HEIGHT) + scroll_height < SCROLL_DRAG_DISTANCE * FONT_HEIGHT:
+            scroll_height += (SCREEN_TOTAL_LINES - a) * FONT_HEIGHT
+    SCREEN_TOTAL_LINES = a
+
+def update(text = "", ACTIVE = False):
+    global DT
+    global FPS
     pygame.display.set_caption(CAPTION)
     x = keys(ACTIVE)
     prepare()
@@ -176,21 +208,31 @@ def update(text = "", fps=120, ACTIVE = False):
     for i in ALL: #get all the objects
         WINDOW.blit(i.surf, (i.rect.x, i.rect.y))
     pygame.display.update()
-    clock.tick(fps)
+    DT = clock.tick(FPS)
     return x
 
 def ask(text):
     global INPUT_TEXT
-    while update(text, 120, True):
+    while update(text, True):
         pass
     INPUT_TEXT2 = INPUT_TEXT
     INPUT_TEXT = ""
     return INPUT_TEXT2
 
+def purge(ammount):
+    try:ammount = int(ammount)
+    except: return "Value must be int"
+    global SCREEN_TEXT
+    try:
+        SCREEN_TEXT = SCREEN_TEXT[0:len(SCREEN_TEXT)-ammount]
+    except:return "Value is either too large or too small"
+    scroll_by_say()
+
 def say(text):
     text = str(text)
     global SCREEN_TEXT
     SCREEN_TEXT += text
+    scroll_by_say()
 
 def clear():
     global SCREEN_TEXT
@@ -200,4 +242,5 @@ def quit():
     pygame.quit()
     sys.exit()
 
+update(" ")
 update()

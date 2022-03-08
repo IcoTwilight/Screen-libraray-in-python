@@ -8,13 +8,20 @@ while(1):
     I = screen.ask(">>>")
     #set the title of the window to the input
     screen.CAPTION = str(I)
+    
     if I == "quit":
         #quit
         screen.quit()
-        #display the text to the output
+        
+    #display the text to the output
     screen.say(I+"\n")
     #call update to display the screen.
     screen.update()
+    
     if I == "clear":
         #clear the screen
         screen.clear()
+    elif I == "purge":
+        A = screen.ask("Amount?>>>")
+        #remove A letters from the screen
+        screen.purge(int(A))
